@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SurveillanceOS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #080b10;
+    --bg2: #0c1018;
+    --bg3: #101520;
+    --border: #1a2035;
+    --border2: #222840;
+    --accent: #2255ff;
+    --accent2: #1133cc;
+    --red: #ff2233;
+    --orange: #ff7700;
+    --green: #00ff88;
+    --text: #c8d4f0;
+    --dim: #445070;
+    --dim2: #2a3550;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+  }
+
+  .logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .logo-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+  .logo-sub {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .nav-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--dim);
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+  .nav-item.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background: rgba(34,85,255,0.06);
+  }
+  .nav-item svg { opacity: 0.6; }
+  .nav-item.active svg { opacity: 1; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent2);
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .time-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+  .date-display {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* ---- MAIN ---- */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .topbar {
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    background: var(--bg2);
+  }
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .topbar-sep { flex: 1; }
+
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--dim);
+    padding: 6px 16px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 6px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { border-color: #3344aa; color: var(--text); background: rgba(34,85,255,0.08); }
+  .btn.primary { border-color: var(--accent2); color: #6688ff; }
+  .btn.primary:hover { border-color: var(--accent); color: #aabbff; background: rgba(34,85,255,0.12); }
+  .btn.danger { border-color: #3a1010; color: #883333; }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); background: rgba(255,34,51,0.08); }
+  .btn.active-rec { border-color: var(--red); color: var(--red); background: rgba(255,34,51,0.08); }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ---- PAGES ---- */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ---- CAMERA GRID ---- */
+  .cam-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .cam-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .cam-card:hover { border-color: var(--border2); }
+  .cam-card.motion { border-color: rgba(255,119,0,0.5); }
+
+  .cam-video {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #000;
+    overflow: hidden;
+  }
+
+  canvas.cam-canvas { width: 100%; height: 100%; display: block; }
+
+  .cam-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .cam-hud-tl {
+    position: absolute;
+    top: 8px; left: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+  }
+  .cam-hud-tr {
+    position: absolute;
+    top: 8px; right: 10px;
+    display: flex; gap: 6px; align-items: center;
+  }
+  .pill {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+  .pill.rec { background: rgba(255,34,51,0.25); color: #ff4455; border: 1px solid rgba(255,34,51,0.4); display:none; }
+  .pill.motion-pill { background: rgba(255,119,0,0.2); color: #ff8800; border: 1px solid rgba(255,119,0,0.4); display:none; }
+  .pill.online { background: rgba(0,255,136,0.1); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
+  .pill.offline { background: rgba(255,34,51,0.1); color: #ff4455; border: 1px solid rgba(255,34,51,0.3); }
+
+  /* ESP corners */
+  .esp-corner {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-color: rgba(255,255,255,0.12);
+    border-style: solid;
+  }
+  .esp-corner.tl { top: 6px; left: 6px; border-width: 1px 0 0 1px; border-radius: 2px 0 0 0; }
+  .esp-corner.tr { top: 6px; right: 6px; border-width: 1px 1px 0 0; border-radius: 0 2px 0 0; }
+  .esp-corner.bl { bottom: 6px; left: 6px; border-width: 0 0 1px 1px; border-radius: 0 0 0 2px; }
+  .esp-corner.br { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; border-radius: 0 0 2px 0; }
+
+  .cam-footer {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .cam-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text);
+    flex: 1;
+  }
+  .cam-ip {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  .cam-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--dim);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-size: 11px;
+  }
+  .cam-btn:hover { border-color: #334; color: var(--text); }
+  .cam-btn.rec-btn:hover { border-color: var(--red); color: var(--red); }
+  .cam-btn.rec-btn.active { border-color: var(--red); color: var(--red); background: rgba(255,34,51,0.08); }
+
+  /* Add camera placeholder */
+  .cam-add {
+    background: var(--bg2);
+    border: 1px dashed var(--border2);
+    border-radius: 12px;
+    aspect-ratio: unset;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    gap: 10px;
+    transition: all 0.2s;
+    color: var(--dim);
+  }
+  .cam-add:hover { border-color: #334488; color: #6677aa; background: rgba(34,85,255,0.03); }
+  .cam-add-icon {
+    width: 48px; height: 48px;
+    position: relative;
+    opacity: 0.5;
+  }
+  /* ESP-style add icon */
+  .add-esp {
+    position: relative;
+    width: 48px; height: 48px;
+  }
+  .add-esp::before, .add-esp::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+    border-radius: 1px;
+  }
+  .add-esp::before { width: 2px; height: 20px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+  .add-esp::after { width: 20px; height: 2px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+  .esp-frame {
+    position: absolute;
+    inset: 0;
+  }
+  .esp-frame::before, .esp-frame::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    border-color: currentColor;
+    border-style: solid;
+  }
+  .esp-frame::before {
+    top: 0; left: 0;
+    border-width: 2px 0 0 2px;
+    border-radius: 3px 0 0 0;
+    box-shadow: calc(100% - 12px) calc(100% - 12px) 0 0 currentColor; /* hack */
+  }
+  .esp-tl, .esp-tr, .esp-bl, .esp-br {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-color: currentColor;
+    border-style: solid;
+  }
+  .esp-tl { top:0; left:0; border-width: 2px 0 0 2px; border-radius: 3px 0 0 0; }
+  .esp-tr { top:0; right:0; border-width: 2px 2px 0 0; border-radius: 0 3px 0 0; }
+  .esp-bl { bottom:0; left:0; border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
+  .esp-br { bottom:0; right:0; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
+
+  .cam-add-text { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+
+  /* ---- RECORDINGS PAGE ---- */
+  .rec-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .rec-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .rec-item:hover { border-color: var(--border2); background: var(--bg3); }
+
+  .rec-thumb {
+    width: 80px; height: 45px;
+    background: #000;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    font-size: 18px;
+    color: var(--dim);
+  }
+
+  .rec-info { flex: 1; }
+  .rec-name { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 1px; }
+  .rec-meta { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--dim); margin-top: 3px; }
+
+  .rec-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .rec-badge.motion { background: rgba(255,119,0,0.1); color: #ff8800; border: 1px solid rgba(255,119,0,0.3); }
+  .rec-badge.manual { background: rgba(34,85,255,0.1); color: #6688ff; border: 1px solid rgba(34,85,255,0.3); }
+
+  .rec-open {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--dim);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .rec-open:hover { border-color: var(--accent); color: #6688ff; }
+
+  /* ---- SETTINGS PAGE ---- */
+  .settings-grid { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
+
+  .setting-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .setting-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .setting-name { font-size: 13px; color: var(--text); font-weight: 500; }
+  .setting-val { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 120px;
+    height: 2px;
+    background: var(--border2);
+    border-radius: 1px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .toggle {
+    width: 36px; height: 20px;
+    background: var(--border2);
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: var(--accent2); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 19px; }
+
+  /* ---- POPUP ---- */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .popup-overlay.visible { display: flex; }
+
+  .popup {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 28px;
+    width: 360px;
+    position: relative;
+  }
+
+  /* ESP frame on popup */
+  .popup::before, .popup::after { display: none; }
+  .popup-esp {
+    position: absolute;
+    inset: -1px;
+    border-radius: 16px;
+    pointer-events: none;
+  }
+  .popup-esp .esp-tl, .popup-esp .esp-tr,
+  .popup-esp .esp-bl, .popup-esp .esp-br {
+    width: 18px; height: 18px;
+    border-color: var(--accent2);
+  }
+  .popup-esp .esp-tl { top: -1px; left: -1px; border-radius: 5px 0 0 0; }
+  .popup-esp .esp-tr { top: -1px; right: -1px; border-radius: 0 5px 0 0; }
+  .popup-esp .esp-bl { bottom: -1px; left: -1px; border-radius: 0 0 0 5px; }
+  .popup-esp .esp-br { bottom: -1px; right: -1px; border-radius: 0 0 5px 0; }
+
+  .popup-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .popup-sub {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    margin-bottom: 22px;
+  }
+
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .field-row { margin-bottom: 14px; }
+  .field-input {
+    width: 100%;
+    background: #080810;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: var(--accent2); }
+
+  .field-row-split { display: flex; gap: 10px; }
+  .field-row-split .field-row { flex: 1; }
+
+  .popup-actions { display: flex; gap: 8px; margin-top: 20px; }
+  .popup-actions .btn { flex: 1; justify-content: center; }
+
+  /* Log */
+  .log-strip {
+    height: 36px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    overflow: hidden;
+  }
+  .log-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  #logText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">SURV//OS</div>
+    <div class="logo-sub">v2.1.0 DEMO</div>
+  </div>
+
+  <div class="nav-item active" onclick="setPage('cameras', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="15" height="10" rx="2"/><path d="m17 9 5-3v12l-5-3"/></svg>
+    Камеры
+    <span class="nav-badge" id="camCount">2</span>
+  </div>
+  <div class="nav-item" onclick="setPage('recordings', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+    Записи
+    <span class="nav-badge">4</span>
+  </div>
+  <div class="nav-item" onclick="setPage('settings', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+    Настройки
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="time-display" id="sideTime">00:00:00</div>
+    <div class="date-display" id="sideDate">—</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="pageTitle">Камеры</span>
+    <div class="topbar-sep"></div>
+    <button class="btn primary" onclick="openPopup()" id="addBtn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Добавить камеру
+    </button>
+  </div>
+
+  <div class="content">
+
+    <!-- CAMERAS PAGE -->
+    <div class="page active" id="page-cameras">
+      <div class="cam-grid" id="camGrid">
+
+        <!-- CAM 1 -->
+        <div class="cam-card" id="card0">
+          <div class="cam-video">
+            <canvas class="cam-canvas" id="canvas0" width="640" height="360"></canvas>
+            <div class="cam-overlay">
+              <div class="esp-corner tl"></div>
+              <div class="esp-corner tr"></div>
+              <div class="esp-corner bl"></div>
+              <div class="esp-corner br"></div>
+              <div class="cam-hud-tl" id="hud0">CAM-01</div>
+              <div class="cam-hud-tr">
+                <span class="pill motion-pill" id="motionPill0">MOTION</span>
+                <span class="pill rec" id="recPill0">● REC</span>
+                <span class="pill online">ONLINE</span>
+              </div>
+            </div>
+          </div>
+          <div class="cam-footer">
+            <div>
+              <div class="cam-name">Входная дверь</div>
+              <div class="cam-ip">192.168.1.101:8080</div>
+            </div>
+            <button class="cam-btn rec-btn" id="recBtn0" onclick="toggleRec(0)" title="Запись">⏺</button>
+            <button class="cam-btn" onclick="removeCamera(0)" title="Удалить">✕</button>
+          </div>
+        </div>
+
+        <!-- CAM 2 -->
+        <div class="cam-card" id="card1">
+          <div class="cam-video">
+            <canvas class="cam-canvas" id="canvas1" width="640" height="360"></canvas>
+            <div class="cam-overlay">
+              <div class="esp-corner tl"></div>
+              <div class="esp-corner tr"></div>
+              <div class="esp-corner bl"></div>
+              <div class="esp-corner br"></div>
+              <div class="cam-hud-tl" id="hud1">CAM-02</div>
+              <div class="cam-hud-tr">
+                <span class="pill motion-pill" id="motionPill1">MOTION</span>
+                <span class="pill rec" id="recPill1">● REC</span>
+                <span class="pill online">ONLINE</span>
+              </div>
+            </div>
+          </div>
+          <div class="cam-footer">
+            <div>
+              <div class="cam-name">Гараж</div>
+              <div class="cam-ip">192.168.1.102:8080</div>
+            </div>
+            <button class="cam-btn rec-btn" id="recBtn1" onclick="toggleRec(1)" title="Запись">⏺</button>
+            <button class="cam-btn" onclick="removeCamera(1)" title="Удалить">✕</button>
+          </div>
+        </div>
+
+        <!-- ADD PLACEHOLDER -->
+        <div class="cam-add" id="camAddBtn" onclick="openPopup()">
+          <div style="position:relative;width:48px;height:48px;">
+            <div class="esp-tl" style="position:absolute;top:0;left:0;width:14px;height:14px;border-top:2px solid currentColor;border-left:2px solid currentColor;border-radius:3px 0 0 0;"></div>
+            <div class="esp-tr" style="position:absolute;top:0;right:0;width:14px;height:14px;border-top:2px solid currentColor;border-right:2px solid currentColor;border-radius:0 3px 0 0;"></div>
+            <div class="esp-bl" style="position:absolute;bottom:0;left:0;width:14px;height:14px;border-bottom:2px solid currentColor;border-left:2px solid currentColor;border-radius:0 0 0 3px;"></div>
+            <div class="esp-br" style="position:absolute;bottom:0;right:0;width:14px;height:14px;border-bottom:2px solid currentColor;border-right:2px solid currentColor;border-radius:0 0 3px 0;"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+          </div>
+          <div class="cam-add-text">Добавить камеру</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RECORDINGS PAGE -->
+    <div class="page" id="page-recordings">
+      <div class="rec-list" id="recList">
+        <div class="rec-item">
+          <div class="rec-thumb">🎥</div>
+          <div class="rec-info">
+            <div class="rec-name">motion_20260318_214532.mp4</div>
+            <div class="rec-meta">CAM-01 · 18.03.2026 21:45 · 2:14</div>
+          </div>
+          <span class="rec-badge motion">MOTION</span>
+          <button class="rec-open" onclick="fakeOpen()">Открыть</button>
+        </div>
+        <div class="rec-item">
+          <div class="rec-thumb">🎥</div>
+          <div class="rec-info">
+            <div class="rec-name">manual_20260318_193001.mp4</div>
+            <div class="rec-meta">CAM-02 · 18.03.2026 19:30 · 5:42</div>
+          </div>
+          <span class="rec-badge manual">РУЧНАЯ</span>
+          <button class="rec-open" onclick="fakeOpen()">Открыть</button>
+        </div>
+        <div class="rec-item">
+          <div class="rec-thumb">🎥</div>
+          <div class="rec-info">
+            <div class="rec-name">motion_20260317_084210.mp4</div>
+            <div class="rec-meta">CAM-01 · 17.03.2026 08:42 · 0:58</div>
+          </div>
+          <span class="rec-badge motion">MOTION</span>
+          <button class="rec-open" onclick="fakeOpen()">Открыть</button>
+        </div>
+        <div class="rec-item">
+          <div class="rec-thumb">🎥</div>
+          <div class="rec-info">
+            <div class="rec-name">manual_20260316_120000.mp4</div>
+            <div class="rec-meta">CAM-02 · 16.03.2026 12:00 · 10:00</div>
+          </div>
+          <span class="rec-badge manual">РУЧНАЯ</span>
+          <button class="rec-open" onclick="fakeOpen()">Открыть</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-label">Обнаружение движения</div>
+          <div class="setting-row">
+            <span class="setting-name">Детектор движения</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Чувствительность</span>
+            <input type="range" min="1" max="100" value="60">
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Сирена при движении</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Авто-запись при движении</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+        <div class="setting-card">
+          <div class="setting-label">Запись</div>
+          <div class="setting-row">
+            <span class="setting-name">Папка записей</span>
+            <span class="setting-val">./recordings</span>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Формат</span>
+            <span class="setting-val">MP4 / H264</span>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Запись после движения</span>
+            <span class="setting-val">5 сек</span>
+          </div>
+        </div>
+        <div class="setting-card">
+          <div class="setting-label">Интерфейс</div>
+          <div class="setting-row">
+            <span class="setting-name">Сканлайны</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">ESP-рамки</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LOG STRIP -->
+  <div class="log-strip">
+    <div class="log-dot"></div>
+    <span id="logText">Система запущена. 2 камеры активны.</span>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopupOutside(event)">
+  <div class="popup">
+    <div class="popup-esp">
+      <div class="esp-tl"></div>
+      <div class="esp-tr"></div>
+      <div class="esp-bl"></div>
+      <div class="esp-br"></div>
+    </div>
+    <div class="popup-title">Новая камера</div>
+    <div class="popup-sub">Введи данные для подключения</div>
+
+    <div class="field-row">
+      <div class="field-label">Название</div>
+      <input class="field-input" id="popName" placeholder="Входная дверь" type="text">
+    </div>
+    <div class="field-row-split">
+      <div class="field-row">
+        <div class="field-label">IP-адрес</div>
+        <input class="field-input" id="popIP" placeholder="192.168.1.103" type="text">
+      </div>
+      <div class="field-row" style="max-width:100px;">
+        <div class="field-label">Порт</div>
+        <input class="field-input" id="popPort" placeholder="8080" type="text">
+      </div>
+    </div>
+
+    <div class="popup-actions">
+      <button class="btn" onclick="closePopup()">Отмена</button>
+      <button class="btn primary" onclick="addCamera()">Подключить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Clock ----
+function updateClock() {
+  const now = new Date();
+  document.getElementById('sideTime').textContent = now.toTimeString().slice(0,8);
+  document.getElementById('sideDate').textContent = now.toLocaleDateString('ru-RU', {day:'2-digit',month:'short',year:'numeric'});
+}
+setInterval(updateClock, 500);
+updateClock();
+
+// ---- Navigation ----
+function setPage(name, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const titles = {cameras:'Камеры', recordings:'Записи', settings:'Настройки'};
+  document.getElementById('pageTitle').textContent = titles[name];
+  document.getElementById('addBtn').style.display = name === 'cameras' ? 'flex' : 'none';
+}
+
+// ---- Popup ----
+function openPopup() {
+  document.getElementById('popupOverlay').classList.add('visible');
+  document.getElementById('popName').focus();
+}
+function closePopup() {
+  document.getElementById('popupOverlay').classList.remove('visible');
+}
+function closePopupOutside(e) {
+  if (e.target === document.getElementById('popupOverlay')) closePopup();
+}
+function addCamera() {
+  const name = document.getElementById('popName').value || 'CAM';
+  const ip = document.getElementById('popIP').value || '0.0.0.0';
+  const port = document.getElementById('popPort').value || '8080';
+  log(`Камера "${name}" добавлена: ${ip}:${port}`);
+  closePopup();
+  document.getElementById('popName').value = '';
+  document.getElementById('popIP').value = '';
+  document.getElementById('popPort').value = '';
+}
+
+// ---- Recording toggle ----
+const recState = [false, false];
+function toggleRec(idx) {
+  recState[idx] = !recState[idx];
+  const btn = document.getElementById('recBtn' + idx);
+  const pill = document.getElementById('recPill' + idx);
+  btn.classList.toggle('active', recState[idx]);
+  pill.style.display = recState[idx] ? 'inline' : 'none';
+  log(recState[idx] ? `CAM-0${idx+1}: запись начата` : `CAM-0${idx+1}: запись остановлена`);
+}
+
+function removeCamera(idx) {
+  log(`CAM-0${idx+1}: отключена`);
+}
+
+function fakeOpen() {
+  log('Открытие файла... (демо)');
+}
+
+// ---- Log ----
+function log(msg) {
+  const t = new Date().toTimeString().slice(0,8);
+  document.getElementById('logText').textContent = `[${t}] ${msg}`;
+}
+
+// ---- Canvas simulation ----
+const cameras = [
+  { t: 0, persons: [], motionTimer: 0 },
+  { t: 0, persons: [], motionTimer: 0 },
+];
+
+function drawCam(idx) {
+  const cam = cameras[idx];
+  const canvas = document.getElementById('canvas' + idx);
+  const ctx = canvas.getContext('2d');
+  const W = 640, H = 360;
+  cam.t++;
+
+  // Background
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, idx === 0 ? '#08080e' : '#080e08');
+  g.addColorStop(1, '#050508');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // Floor
+  ctx.fillStyle = idx === 0 ? '#0c0c14' : '#0c140c';
+  ctx.fillRect(0, H * 0.6, W, H * 0.4);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.beginPath(); ctx.moveTo(0, H*0.6); ctx.lineTo(W, H*0.6); ctx.stroke();
+
+  // Static objects
+  if (idx === 0) {
+    ctx.fillStyle = '#111122'; ctx.fillRect(30, 160, 55, 100);
+    ctx.fillStyle = '#0f0f1e'; ctx.fillRect(500, 170, 80, 90);
+  } else {
+    ctx.fillStyle = '#0a140a'; ctx.fillRect(50, 180, 100, 80);
+    ctx.fillStyle = '#111811'; ctx.fillRect(450, 190, 70, 70);
+  }
+
+  // Spawn person occasionally
+  if (Math.random() < 0.003 && cam.persons.length === 0) {
+    cam.persons.push({ x: -30, y: 200 + Math.random()*40, speed: 1 + Math.random() });
+  }
+
+  // Move persons
+  let motion = false;
+  cam.persons = cam.persons.filter(p => {
+    p.x += p.speed;
+    // Draw person
+    ctx.fillStyle = '#2a2a4a';
+    ctx.fillRect(p.x, p.y, 26, 58);
+    ctx.fillStyle = '#3a3a5a';
+    ctx.fillRect(p.x + 4, p.y - 16, 18, 18);
+    // Motion box
+    if (p.x > 0) {
+      motion = true;
+      const bx = p.x - 6, by = p.y - 22, bw = 38, bh = 80;
+      ctx.strokeStyle = `rgba(255,80,80,${0.4 + 0.3*Math.sin(cam.t*0.3)})`;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, bw, bh);
+      // corners
+      const cs = 8;
+      ctx.strokeStyle = '#ff3344';
+      [[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].forEach(([cx,cy]) => {
+        const sx = cx===bx?1:-1, sy = cy===by?1:-1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy+sy*cs); ctx.lineTo(cx,cy); ctx.lineTo(cx+sx*cs,cy);
+        ctx.stroke();
+      });
+    }
+    return p.x < W + 40;
+  });
+
+  // Motion indicators
+  const card = document.getElementById('card' + idx);
+  const pill = document.getElementById('motionPill' + idx);
+  if (motion) {
+    cam.motionTimer = 60;
+    if (!cam._wasMotion) {
+      log(`⚠ CAM-0${idx+1}: обнаружено движение!`);
+      cam._wasMotion = true;
+    }
+  } else {
+    if (cam.motionTimer > 0) cam.motionTimer--;
+    else { cam._wasMotion = false; }
+  }
+  const showMotion = cam.motionTimer > 0;
+  card.classList.toggle('motion', showMotion);
+  pill.style.display = showMotion ? 'inline' : 'none';
+
+  // Noise
+  if (cam.t % 3 === 0) {
+    const id = ctx.getImageData(0,0,W,H);
+    const d = id.data;
+    for (let i=0;i<500;i++) {
+      const px = (Math.random()*W*H|0)*4;
+      const v = Math.random()*20;
+      d[px]+=v; d[px+1]+=v; d[px+2]+=v;
+    }
+    ctx.putImageData(id,0,0);
+  }
+
+  // Scanlines
+  ctx.fillStyle = 'rgba(0,0,0,0.07)';
+  for (let y=0;y<H;y+=3) ctx.fillRect(0,y,W,1);
+
+  // Timestamp on canvas
+  const ts = new Date().toTimeString().slice(0,8);
+  ctx.font = '10px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText(ts, 10, H - 10);
+  ctx.fillText(`CAM-0${idx+1}`, W - 52, H - 10);
+
+  // REC blink on canvas
+  if (recState[idx]) {
+    ctx.strokeStyle = `rgba(255,34,51,${0.15+0.1*Math.sin(cam.t*0.12)})`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2,2,W-4,H-4);
+  }
+}
+
+function loop() {
+  drawCam(0);
+  drawCam(1);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
