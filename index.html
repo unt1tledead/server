@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SurveillanceOS Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #080b10;
+    --bg2: #0c1018;
+    --bg3: #101520;
+    --border: #1a2035;
+    --border2: #222840;
+    --accent: #2255ff;
+    --accent2: #1133cc;
+    --red: #ff2233;
+    --orange: #ff7700;
+    --green: #00ff88;
+    --text: #c8d4f0;
+    --dim: #445070;
+    --dim2: #2a3550;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .logo {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title { font-size: 16px; font-weight: 700; letter-spacing: 3px; }
+  .logo-sub { font-size: 10px; letter-spacing: 2px; color: var(--dim); font-family: 'Share Tech Mono', monospace; }
+
+  .nav-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--dim);
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+  .nav-item.active { color: var(--text); border-left-color: var(--accent); background: rgba(34,85,255,0.06); }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent2);
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .time-display { font-family: 'Share Tech Mono', monospace; font-size: 22px; letter-spacing: 2px; }
+  .date-display { font-size: 11px; color: var(--dim); letter-spacing: 1px; margin-top: 2px; }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    background: var(--bg2);
+    gap: 12px;
+  }
+  .topbar-title { font-size: 13px; font-weight: 700; letter-spacing: 3px; color: var(--dim); text-transform: uppercase; }
+
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--dim);
+    padding: 6px 16px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 6px;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { border-color: #3344aa; color: var(--text); }
+  .btn.primary { border-color: var(--accent2); color: #6688ff; background: rgba(34,85,255,0.1); }
+  .btn.primary:hover { border-color: var(--accent); color: #aabbff; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CAM GRID */
+  .cam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .cam-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .cam-card.motion { border-color: rgba(255,119,0,0.5); }
+
+  .cam-video { position: relative; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+  canvas.cam-canvas { width: 100%; height: 100%; display: block; }
+
+  .cam-overlay { position: absolute; inset: 0; pointer-events: none; }
+  .cam-hud-tl { position: absolute; top: 8px; left: 10px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.4); }
+  .cam-hud-tr { position: absolute; top: 8px; right: 10px; display: flex; gap: 5px; align-items: center; }
+
+  .pill { font-family: 'Share Tech Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 4px; letter-spacing: 1px; }
+  .pill.online { background: rgba(0,255,136,0.1); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
+  .pill.rec { background: rgba(255,34,51,0.2); color: #ff4455; border: 1px solid rgba(255,34,51,0.4); display: none; }
+  .pill.motion-pill { background: rgba(255,119,0,0.2); color: #ff8800; border: 1px solid rgba(255,119,0,0.4); display: none; }
+
+  .esp-corner { position: absolute; width: 14px; height: 14px; border-color: rgba(255,255,255,0.12); border-style: solid; }
+  .esp-corner.tl { top:6px; left:6px; border-width:1px 0 0 1px; }
+  .esp-corner.tr { top:6px; right:6px; border-width:1px 1px 0 0; }
+  .esp-corner.bl { bottom:6px; left:6px; border-width:0 0 1px 1px; }
+  .esp-corner.br { bottom:6px; right:6px; border-width:0 1px 1px 0; }
+
+  .cam-footer {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .cam-name { font-size: 13px; font-weight: 600; letter-spacing: 1px; color: var(--text); flex: 1; }
+  .cam-ip { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--dim); display: block; }
+
+  .cam-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--dim);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-size: 13px;
+  }
+  .cam-btn:hover { border-color: #334; color: var(--text); }
+  .cam-btn.overlay-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .cam-btn.overlay-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(34,85,255,0.1); }
+  .cam-btn.rec-btn:hover { border-color: var(--red); color: var(--red); }
+  .cam-btn.rec-btn.active { border-color: var(--red); color: var(--red); background: rgba(255,34,51,0.08); }
+
+  /* SETTINGS */
+  .settings-wrap { display: flex; flex-direction: column; gap: 6px; max-width: 520px; }
+  .section-lbl { font-size: 10px; letter-spacing: 3px; color: var(--dim); text-transform: uppercase; margin-top: 10px; }
+
+  .setting-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 20px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-name { font-size: 13px; color: var(--text); flex: 1; }
+  .setting-val { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--dim); }
+
+  .toggle {
+    width: 36px; height: 20px;
+    background: var(--border2);
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent2); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 19px; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 120px; height: 2px;
+    background: var(--border2);
+    border-radius: 1px;
+    outline: none;
+    flex-shrink: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  /* HOTKEY CARD */
+  .hotkey-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 90px;
+    text-align: right;
+  }
+  .hotkey-display.waiting { color: var(--orange); animation: blink 0.6s infinite; }
+  .hotkey-display.set { color: var(--green); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .small-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--dim);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+  .small-btn:hover { border-color: var(--accent); color: #6688ff; }
+  .small-btn.danger:hover { border-color: var(--red); color: var(--red); }
+  .hint-text { font-size: 10px; color: var(--dim2); padding: 6px 0 2px; }
+
+  /* LOG */
+  .log-strip {
+    height: 36px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+  }
+  .log-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* OVERLAY WINDOW */
+  .overlay-win {
+    position: fixed;
+    width: 260px;
+    background: #080b10;
+    border: 1px solid #1a2035;
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 999;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    display: none;
+    cursor: move;
+  }
+  .overlay-win.visible { display: block; }
+  .overlay-win.flashing { border-color: var(--orange) !important; box-shadow: 0 0 20px rgba(255,119,0,0.4); }
+
+  .ov-video { position: relative; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+  .ov-canvas { width: 100%; height: 100%; display: block; }
+  .ov-motion { position: absolute; top: 6px; left: 8px; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--orange); display: none; }
+
+  .ov-bar {
+    height: 22px;
+    background: #0c1018;
+    border-top: 1px solid #1a2035;
+    display: flex;
+    align-items: center;
+    padding: 0 6px 0 10px;
+    gap: 4px;
+  }
+  .ov-name { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--dim); flex: 1; }
+
+  .ov-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--dim);
+    font-size: 11px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+  .ov-btn:hover { color: var(--text); }
+  .ov-btn.pinned { color: var(--accent); }
+  .ov-btn.close:hover { color: var(--red); }
+
+  .ov-slider {
+    -webkit-appearance: none;
+    width: 44px; height: 2px;
+    background: var(--border2);
+    border-radius: 1px;
+    outline: none;
+  }
+  .ov-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  /* POPUP */
+  .popup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+  .popup-overlay.visible { display: flex; }
+  .popup {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 28px;
+    width: 360px;
+    position: relative;
+  }
+  .popup-esp { position: absolute; inset: -1px; border-radius: 16px; pointer-events: none; }
+  .popup-esp span {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-color: var(--accent2);
+    border-style: solid;
+    display: block;
+  }
+  .popup-esp .tl { top:-1px; left:-1px; border-width:2px 0 0 2px; border-radius:5px 0 0 0; }
+  .popup-esp .tr { top:-1px; right:-1px; border-width:2px 2px 0 0; border-radius:0 5px 0 0; }
+  .popup-esp .bl { bottom:-1px; left:-1px; border-width:0 0 2px 2px; border-radius:0 0 0 5px; }
+  .popup-esp .br { bottom:-1px; right:-1px; border-width:0 2px 2px 0; border-radius:0 0 5px 0; }
+
+  .popup-title { font-size:14px; font-weight:700; letter-spacing:3px; margin-bottom:4px; }
+  .popup-sub { font-size:11px; color:var(--dim); margin-bottom:20px; }
+  .field-lbl { font-size:10px; letter-spacing:2px; color:var(--dim); text-transform:uppercase; margin-bottom:6px; }
+  .field-input {
+    width:100%; background:#080810; border:1px solid var(--border2);
+    border-radius:8px; color:var(--text); padding:9px 12px;
+    font-family:'Share Tech Mono',monospace; font-size:12px; outline:none;
+  }
+  .field-input:focus { border-color:var(--accent2); }
+  .popup-row { display:flex; gap:10px; }
+  .popup-row .field-group { flex:1; }
+  .popup-row .field-group.small { max-width:90px; }
+  .field-group { margin-bottom:14px; }
+  .popup-actions { display:flex; gap:8px; margin-top:4px; }
+  .popup-actions .btn { flex:1; justify-content:center; }
+  .btn.cancel { background:var(--bg3); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">SURV//OS</div>
+    <div class="logo-sub">v2.1.0 DEMO</div>
+  </div>
+  <div class="nav-item active" onclick="setPage('cameras',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="15" height="10" rx="2"/><path d="m17 9 5-3v12l-5-3"/></svg>
+    Камеры <span class="nav-badge" id="camBadge">2</span>
+  </div>
+  <div class="nav-item" onclick="setPage('settings',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+    Настройки
+  </div>
+  <div class="sidebar-bottom">
+    <div class="time-display" id="clock">00:00:00</div>
+    <div class="date-display" id="date">—</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="pageTitle">Камеры</span>
+    <div style="flex:1"></div>
+    <button class="btn primary" onclick="openPopup()" id="addBtn">+ Добавить камеру</button>
+  </div>
+
+  <div class="content">
+
+    <!-- CAMERAS -->
+    <div class="page active" id="page-cameras">
+      <div class="cam-grid">
+
+        <!-- CAM 1 -->
+        <div class="cam-card" id="card0">
+          <div class="cam-video">
+            <canvas class="cam-canvas" id="canvas0" width="640" height="360"></canvas>
+            <div class="cam-overlay">
+              <div class="esp-corner tl"></div><div class="esp-corner tr"></div>
+              <div class="esp-corner bl"></div><div class="esp-corner br"></div>
+              <div class="cam-hud-tl">CAM-01</div>
+              <div class="cam-hud-tr">
+                <span class="pill motion-pill" id="mp0">MOTION</span>
+                <span class="pill rec" id="rp0">● REC</span>
+                <span class="pill online">ONLINE</span>
+              </div>
+            </div>
+          </div>
+          <div class="cam-footer">
+            <div><div class="cam-name">Кухня</div><span class="cam-ip">192.168.1.101:8080</span></div>
+            <button class="cam-btn rec-btn" id="recBtn0" onclick="toggleRec(0)" title="Запись">⏺</button>
+            <button class="cam-btn overlay-btn" id="ovBtn0" onclick="toggleOverlay(0)" title="Оверлей">⧉</button>
+            <button class="cam-btn" onclick="log('CAM-01 удалена')" title="Удалить">✕</button>
+          </div>
+        </div>
+
+        <!-- CAM 2 -->
+        <div class="cam-card" id="card1">
+          <div class="cam-video">
+            <canvas class="cam-canvas" id="canvas1" width="640" height="360"></canvas>
+            <div class="cam-overlay">
+              <div class="esp-corner tl"></div><div class="esp-corner tr"></div>
+              <div class="esp-corner bl"></div><div class="esp-corner br"></div>
+              <div class="cam-hud-tl">CAM-02</div>
+              <div class="cam-hud-tr">
+                <span class="pill motion-pill" id="mp1">MOTION</span>
+                <span class="pill rec" id="rp1">● REC</span>
+                <span class="pill online">ONLINE</span>
+              </div>
+            </div>
+          </div>
+          <div class="cam-footer">
+            <div><div class="cam-name">Коридор</div><span class="cam-ip">192.168.1.102:8080</span></div>
+            <button class="cam-btn rec-btn" id="recBtn1" onclick="toggleRec(1)" title="Запись">⏺</button>
+            <button class="cam-btn overlay-btn" id="ovBtn1" onclick="toggleOverlay(1)" title="Оверлей">⧉</button>
+            <button class="cam-btn" onclick="log('CAM-02 удалена')" title="Удалить">✕</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-wrap">
+
+        <div class="section-lbl">Сирена</div>
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-name">Громкость</span>
+            <span class="setting-val" id="volVal">80%</span>
+            <input type="range" min="0" max="100" value="80" oninput="document.getElementById('volVal').textContent=this.value+'%'">
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Длительность</span>
+            <span class="setting-val" id="durVal">5 сек</span>
+            <input type="range" min="1" max="30" value="5" oninput="document.getElementById('durVal').textContent=this.value+' сек'">
+          </div>
+        </div>
+
+        <div class="section-lbl">Обнаружение движения</div>
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-name">Детектор движения</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Сирена при движении</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Авто-запись при движении</span>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-name">Чувствительность</span>
+            <span class="setting-val" id="sensVal">60%</span>
+            <input type="range" min="1" max="100" value="60" oninput="document.getElementById('sensVal').textContent=this.value+'%'">
+          </div>
+        </div>
+
+        <div class="section-lbl">Горячая клавиша закрытия</div>
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-name">Клавиша закрытия</span>
+            <span class="hotkey-display" id="hotkeyDisplay">не задана</span>
+            <button class="small-btn" id="bindBtn" onclick="startBind()">ЗАДАТЬ</button>
+            <button class="small-btn danger" onclick="clearBind()">ESC</button>
+          </div>
+          <div class="hint-text">Нажми ЗАДАТЬ, потом любую клавишу. ESC — очистить бинд.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="log-strip">
+    <div class="log-dot"></div>
+    <span id="logText">Система запущена. 2 камеры активны.</span>
+  </div>
+</div>
+
+<!-- OVERLAY WINDOWS -->
+<div class="overlay-win" id="ov0" style="top:80px;left:220px;">
+  <div class="ov-video">
+    <canvas class="ov-canvas" id="ovCanvas0" width="520" height="292"></canvas>
+    <div class="ov-motion" id="ovMotion0">⚠ MOTION</div>
+  </div>
+  <div class="ov-bar">
+    <span class="ov-name">Кухня</span>
+    <button class="ov-btn" id="pinBtn0" onclick="togglePin(0)" title="Закрепить">📌</button>
+    <input type="range" class="ov-slider" min="10" max="100" value="85" oninput="setOvOpacity(0,this.value)" title="Прозрачность">
+    <button class="ov-btn close" onclick="closeOverlay(0)">✕</button>
+  </div>
+</div>
+
+<div class="overlay-win" id="ov1" style="top:80px;left:500px;">
+  <div class="ov-video">
+    <canvas class="ov-canvas" id="ovCanvas1" width="520" height="292"></canvas>
+    <div class="ov-motion" id="ovMotion1">⚠ MOTION</div>
+  </div>
+  <div class="ov-bar">
+    <span class="ov-name">Коридор</span>
+    <button class="ov-btn" id="pinBtn1" onclick="togglePin(1)" title="Закрепить">📌</button>
+    <input type="range" class="ov-slider" min="10" max="100" value="85" oninput="setOvOpacity(1,this.value)" title="Прозрачность">
+    <button class="ov-btn close" onclick="closeOverlay(1)">✕</button>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopupOutside(event)">
+  <div class="popup">
+    <div class="popup-esp"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
+    <div class="popup-title">НОВАЯ КАМЕРА</div>
+    <div class="popup-sub">Введи данные для подключения</div>
+    <div class="field-group"><div class="field-lbl">Название</div><input class="field-input" placeholder="Входная дверь"></div>
+    <div class="popup-row">
+      <div class="field-group"><div class="field-lbl">IP-адрес</div><input class="field-input" placeholder="192.168.1.103"></div>
+      <div class="field-group small"><div class="field-lbl">Порт</div><input class="field-input" placeholder="8080"></div>
+    </div>
+    <div class="popup-actions">
+      <button class="btn cancel" onclick="closePopup()">Отмена</button>
+      <button class="btn primary" onclick="closePopup(); log('Камера добавлена (демо)')">Подключить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Clock ----
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
+  document.getElementById('date').textContent = now.toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'});
+}
+setInterval(updateClock, 500); updateClock();
+
+// ---- Nav ----
+function setPage(name, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const titles = {cameras:'Камеры', settings:'Настройки'};
+  document.getElementById('pageTitle').textContent = titles[name];
+  document.getElementById('addBtn').style.display = name === 'cameras' ? 'flex' : 'none';
+}
+
+// ---- Popup ----
+function openPopup() { document.getElementById('popupOverlay').classList.add('visible'); }
+function closePopup() { document.getElementById('popupOverlay').classList.remove('visible'); }
+function closePopupOutside(e) { if(e.target.id==='popupOverlay') closePopup(); }
+
+// ---- Log ----
+function log(msg) {
+  const t = new Date().toTimeString().slice(0,8);
+  document.getElementById('logText').textContent = `[${t}] ${msg}`;
+}
+
+// ---- Rec ----
+const recState = [false, false];
+function toggleRec(idx) {
+  recState[idx] = !recState[idx];
+  document.getElementById('recBtn'+idx).classList.toggle('active', recState[idx]);
+  document.getElementById('rp'+idx).style.display = recState[idx] ? 'inline' : 'none';
+  log(`CAM-0${idx+1}: запись ${recState[idx] ? 'начата' : 'остановлена'}`);
+}
+
+// ---- Overlay ----
+const ovState = [false, false];
+const pinState = [false, false];
+const ovOpacity = [0.85, 0.85];
+const dragState = [{}, {}];
+
+function toggleOverlay(idx) {
+  ovState[idx] = !ovState[idx];
+  const win = document.getElementById('ov'+idx);
+  const btn = document.getElementById('ovBtn'+idx);
+  win.classList.toggle('visible', ovState[idx]);
+  btn.classList.toggle('active', ovState[idx]);
+  log(`CAM-0${idx+1}: оверлей ${ovState[idx] ? 'открыт' : 'закрыт'}`);
+}
+
+function closeOverlay(idx) {
+  ovState[idx] = false;
+  document.getElementById('ov'+idx).classList.remove('visible');
+  document.getElementById('ovBtn'+idx).classList.remove('active');
+}
+
+function togglePin(idx) {
+  pinState[idx] = !pinState[idx];
+  const btn = document.getElementById('pinBtn'+idx);
+  btn.classList.toggle('pinned', pinState[idx]);
+  btn.title = pinState[idx] ? 'Открепить' : 'Закрепить';
+}
+
+function setOvOpacity(idx, val) {
+  ovOpacity[idx] = val / 100;
+  document.getElementById('ov'+idx).style.opacity = ovOpacity[idx];
+}
+
+// Drag overlays
+[0,1].forEach(idx => {
+  const win = document.getElementById('ov'+idx);
+  win.addEventListener('mousedown', e => {
+    if (pinState[idx]) return;
+    if (e.target.classList.contains('ov-btn') || e.target.classList.contains('ov-slider')) return;
+    dragState[idx] = { dragging: true, sx: e.clientX - win.offsetLeft, sy: e.clientY - win.offsetTop };
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragState[idx].dragging) return;
+    win.style.left = (e.clientX - dragState[idx].sx) + 'px';
+    win.style.top  = (e.clientY - dragState[idx].sy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragState[idx].dragging = false; });
+});
+
+// ---- Hotkey ----
+let waitingBind = false;
+let boundKey = null;
+
+function startBind() {
+  waitingBind = true;
+  const d = document.getElementById('hotkeyDisplay');
+  d.textContent = 'нажми клавишу...';
+  d.className = 'hotkey-display waiting';
+}
+
+function clearBind() {
+  boundKey = null;
+  waitingBind = false;
+  const d = document.getElementById('hotkeyDisplay');
+  d.textContent = 'не задана';
+  d.className = 'hotkey-display';
+  log('Горячая клавиша очищена');
+}
+
+document.addEventListener('keydown', e => {
+  if (waitingBind) {
+    if (e.key === 'Escape') { clearBind(); return; }
+    boundKey = e.key;
+    const d = document.getElementById('hotkeyDisplay');
+    d.textContent = e.key.toUpperCase();
+    d.className = 'hotkey-display set';
+    waitingBind = false;
+    log(`Горячая клавиша: ${e.key.toUpperCase()}`);
+    return;
+  }
+  if (boundKey && e.key === boundKey) {
+    log('⚡ Горячая клавиша — экстренное закрытие! (демо)');
+    document.body.style.transition = 'opacity 0.2s';
+    document.body.style.opacity = '0';
+    setTimeout(() => { document.body.style.opacity = '1'; }, 800);
+  }
+});
+
+// ---- Canvas simulation ----
+const cams = [
+  { t:0, persons:[], motionTimer:0, _wasMotion:false, tint:'#08080e' },
+  { t:0, persons:[], motionTimer:0, _wasMotion:false, tint:'#080e08' },
+];
+
+function drawCam(idx, canvas, isOverlay) {
+  const cam = cams[idx];
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  cam.t++;
+
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, cam.tint); g.addColorStop(1,'#050508');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = idx===0?'#0c0c14':'#0c140c';
+  ctx.fillRect(0,H*0.6,W,H*0.4);
+
+  if(idx===0){ctx.fillStyle='#111122';ctx.fillRect(30*W/640,160*H/360,55*W/640,100*H/360);}
+  else{ctx.fillStyle='#0a140a';ctx.fillRect(50*W/640,180*H/360,100*W/640,80*H/360);}
+
+  if(Math.random()<0.003 && cam.persons.length===0){
+    cam.persons.push({x:-30,y:200+Math.random()*40,speed:1+Math.random()});
+  }
+
+  let motion=false;
+  cam.persons = cam.persons.filter(p=>{
+    p.x += p.speed;
+    const px=p.x*W/640, py=p.y*H/360, pw=26*W/640, ph=58*H/360;
+    ctx.fillStyle='#2a2a4a'; ctx.fillRect(px,py,pw,ph);
+    ctx.fillStyle='#3a3a5a'; ctx.fillRect(px+4*W/640,py-16*H/360,18*W/640,18*H/360);
+    if(p.x>0){
+      motion=true;
+      const bx=px-6*W/640,by=py-22*H/360,bw=38*W/640,bh=80*H/360;
+      ctx.strokeStyle=`rgba(255,80,80,${0.4+0.3*Math.sin(cam.t*0.3)})`;
+      ctx.lineWidth=1; ctx.strokeRect(bx,by,bw,bh);
+      const cs=8*W/640;
+      ctx.strokeStyle='#ff3344';
+      [[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].forEach(([cx,cy])=>{
+        const sx=cx===bx?1:-1,sy=cy===by?1:-1;
+        ctx.beginPath();ctx.moveTo(cx,cy+sy*cs);ctx.lineTo(cx,cy);ctx.lineTo(cx+sx*cs,cy);ctx.stroke();
+      });
+    }
+    return p.x<640+40;
+  });
+
+  if(cam.t%3===0){
+    const id=ctx.getImageData(0,0,W,H);const d=id.data;
+    for(let i=0;i<300;i++){const px=(Math.random()*W*H|0)*4;const v=Math.random()*18;d[px]+=v;d[px+1]+=v;d[px+2]+=v;}
+    ctx.putImageData(id,0,0);
+  }
+  ctx.fillStyle='rgba(0,0,0,0.07)';
+  for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
+
+  const ts=new Date().toTimeString().slice(0,8);
+  ctx.font=`${10*W/640*1.5}px Share Tech Mono,monospace`;
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.fillText(ts,10,H-8);
+
+  if(recState[idx]){
+    ctx.strokeStyle=`rgba(255,34,51,${0.15+0.1*Math.sin(cam.t*0.12)})`;
+    ctx.lineWidth=3; ctx.strokeRect(2,2,W-4,H-4);
+  }
+
+  return motion;
+}
+
+function loop() {
+  [0,1].forEach(idx=>{
+    const motion = drawCam(idx, document.getElementById('canvas'+idx), false);
+    const ovCanvas = document.getElementById('ovCanvas'+idx);
+    if(ovState[idx]) drawCam(idx, ovCanvas, true);
+
+    const card = document.getElementById('card'+idx);
+    const mp = document.getElementById('mp'+idx);
+    const ovMotion = document.getElementById('ovMotion'+idx);
+    const ov = document.getElementById('ov'+idx);
+    const cam = cams[idx];
+
+    if(motion){
+      cam.motionTimer=60;
+      if(!cam._wasMotion){
+        log(`⚠ CAM-0${idx+1}: обнаружено движение!`);
+        cam._wasMotion=true;
+        if(ovState[idx]){
+          ov.style.opacity='1';
+          ov.classList.add('flashing');
+          setTimeout(()=>{
+            ov.classList.remove('flashing');
+            ov.style.opacity=ovOpacity[idx];
+          },3000);
+        }
+      }
+    } else {
+      if(cam.motionTimer>0)cam.motionTimer--;
+      else cam._wasMotion=false;
+    }
+    const show = cam.motionTimer>0;
+    card.classList.toggle('motion',show);
+    mp.style.display=show?'inline':'none';
+    ovMotion.style.display=show?'block':'none';
+  });
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
